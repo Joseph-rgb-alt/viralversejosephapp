@@ -1,0 +1,8 @@
+{
+  "name": "Copy of VIRALVERSE",
+  "description": "The ultimate social media experience combining short videos, social networking, content creation, and dating in one immersive universe.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
