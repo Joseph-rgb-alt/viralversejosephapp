@@ -97,7 +97,7 @@ export default function App() {
         </div>
         
         <div className={`absolute inset-0 w-full h-full ${activeTab === 'social' ? 'z-10' : 'z-0 invisible'}`}>
-            <SocialTab active={activeTab === 'social'} onViewProfile={handleViewProfile} />
+            <SocialTab active={activeTab === 'social'} currentUser={user} onViewProfile={handleViewProfile} />
         </div>
 
         <div className={`absolute inset-0 w-full h-full ${activeTab === 'add' ? 'z-10' : 'z-0 invisible'}`}>

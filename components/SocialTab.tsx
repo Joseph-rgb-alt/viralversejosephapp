@@ -1,11 +1,11 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { NEWS_POOL, MOCK_USER, USERS_POOL, STATUS_POOL, INITIAL_POSTS } from '../constants';
+import { NEWS_POOL, USERS_POOL, STATUS_POOL, INITIAL_POSTS } from '../constants';
 import { Heart, MessageSquare, Eye, Globe, Share2, Plus, X, Camera, Video, Image, Check, Send, Edit3, RotateCcw } from 'lucide-react';
 import { Post, Status, User } from '../types';
 import { CommentsModal, ShareModal } from './VideoTab'; // Reuse modals
 
-export const SocialTab: React.FC<{ active: boolean, onViewProfile: (user: User) => void }> = ({ active, onViewProfile }) => {
+export const SocialTab: React.FC<{ active: boolean, currentUser: User, onViewProfile: (user: User) => void }> = ({ active, currentUser, onViewProfile }) => {
   const [section, setSection] = useState<'status' | 'posts' | 'news'>('posts');
   const [activeArticle, setActiveArticle] = useState<string | null>(null);
   const [followedUsers, setFollowedUsers] = useState<Set<string>>(new Set());
@@ -16,6 +16,7 @@ export const SocialTab: React.FC<{ active: boolean, onViewProfile: (user: User) 
   // Interaction State
   const [commentingPostId, setCommentingPostId] = useState<string | null>(null);
   const [sharingPost, setSharingPost] = useState<Post | null>(null);
+  const [isResharing, setIsResharing] = useState(false);
   const [reshareText, setReshareText] = useState('');
 
   // Status State
@@ -39,7 +40,7 @@ export const SocialTab: React.FC<{ active: boolean, onViewProfile: (user: User) 
       if (!sharingPost) return;
       const newPost: Post = {
           id: `p_${Date.now()}`,
-          author: MOCK_USER,
+          author: currentUser,
           content: reshareText || `Shared a post by @${sharingPost.author.username}`,
           timestamp: 'Just now',
           likes: 0,
@@ -51,6 +52,7 @@ export const SocialTab: React.FC<{ active: boolean, onViewProfile: (user: User) 
       };
       setPosts([newPost, ...posts]);
       setSharingPost(null);
+      setIsResharing(false);
       setReshareText('');
       alert("Reposted to your feed!");
   };
@@ -86,7 +88,7 @@ export const SocialTab: React.FC<{ active: boolean, onViewProfile: (user: User) 
           
           {/* STATUS SECTION */}
           {section === 'status' && (
-              <div className="space-y-4">
+              <div className="space-y-4 animate-fade-in">
                   <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4">
                       {/* MY STATUS */}
                       <div 
@@ -94,7 +96,7 @@ export const SocialTab: React.FC<{ active: boolean, onViewProfile: (user: User) 
                         onClick={() => myStatus ? setViewingStatus(myStatus) : setCreatingStatus(true)}
                       >
                           <div className={`w-20 h-20 rounded-full p-1 relative flex items-center justify-center bg-dark-800 ${myStatus ? 'border-2 border-neon-blue' : 'border-2 border-dashed border-gray-600'}`}>
-                              <img src={MOCK_USER.avatar} className="w-full h-full rounded-full object-cover" alt="My Status" />
+                              <img src={currentUser.avatar} className="w-full h-full rounded-full object-cover" alt="My Status" />
                               
                               {!myStatus && (
                                   <div className="absolute inset-0 flex items-center justify-center">
@@ -124,11 +126,11 @@ export const SocialTab: React.FC<{ active: boolean, onViewProfile: (user: User) 
 
           {/* POSTS SECTION */}
           {section === 'posts' && (
-              <div className="space-y-6">
+              <div className="space-y-6 animate-fade-in">
                   {/* Create Post Mock */}
                   <div className="bg-dark-800 p-4 rounded-xl border border-white/5">
                       <div className="flex gap-3 mb-3">
-                          <img src={MOCK_USER.avatar} className="w-10 h-10 rounded-full" />
+                          <img src={currentUser.avatar} className="w-10 h-10 rounded-full" />
                           <input type="text" placeholder="What's on your mind?" className="bg-transparent w-full outline-none text-white placeholder-gray-500" />
                       </div>
                   </div>
@@ -145,7 +147,7 @@ export const SocialTab: React.FC<{ active: boolean, onViewProfile: (user: User) 
                                 </h4>
                                 <p className="text-xs text-gray-400">{post.timestamp}</p>
                             </div>
-                            {post.author.id !== MOCK_USER.id && (
+                            {post.author.id !== currentUser.id && (
                                 <button 
                                     onClick={() => toggleFollow(post.author.id)}
                                     className={`ml-auto text-xs font-bold px-3 py-1 rounded-full border transition-all ${followedUsers.has(post.author.id) ? 'bg-white text-black border-white' : 'text-neon-blue border-neon-blue'}`}
@@ -186,7 +188,7 @@ export const SocialTab: React.FC<{ active: boolean, onViewProfile: (user: User) 
 
           {/* NEWS SECTION */}
           {section === 'news' && (
-              <div className="space-y-4">
+              <div className="space-y-4 animate-fade-in">
                   {NEWS_POOL.map(news => (
                       <div key={news.id} className="bg-dark-800 rounded-xl overflow-hidden border border-white/5 hover:border-neon-purple/50 transition-colors cursor-pointer" onClick={() => setActiveArticle(activeArticle === news.id ? null : news.id)}>
                           <div className="relative h-48">
@@ -216,50 +218,50 @@ export const SocialTab: React.FC<{ active: boolean, onViewProfile: (user: User) 
 
       {/* MODALS */}
       {commentingPostId && (
-          <CommentsModal videoId={commentingPostId} currentUser={MOCK_USER} onClose={() => setCommentingPostId(null)} />
+          <CommentsModal videoId={commentingPostId} currentUser={currentUser} onClose={() => setCommentingPostId(null)} />
       )}
 
       {sharingPost && (
           <>
-            {reshareText !== '' ? null : (
+            {!isResharing ? (
                  <ShareModal 
                     content={sharingPost} 
                     isPost={true}
                     onClose={() => setSharingPost(null)} 
-                    onReshare={() => setReshareText(' ')} // Trigger reshare UI
+                    onReshare={() => setIsResharing(true)} 
                 />
-            )}
-             {/* Reshare UI Overlay */}
-             {reshareText !== '' && (
-                 <div className="fixed inset-0 z-[70] bg-black/80 flex flex-col justify-center px-4">
-                     <div className="bg-dark-800 p-4 rounded-xl space-y-4">
-                         <div className="flex justify-between">
-                             <h3 className="font-bold">Repost</h3>
-                             <button onClick={() => { setReshareText(''); setSharingPost(null); }}><X /></button>
+            ) : (
+                 // Reshare UI Overlay
+                 <div className="fixed inset-0 z-[70] bg-black/80 flex flex-col justify-center px-4 animate-fade-in">
+                     <div className="bg-dark-800 p-4 rounded-xl space-y-4 shadow-2xl border border-white/10">
+                         <div className="flex justify-between items-center">
+                             <h3 className="font-bold text-lg">Repost with thoughts</h3>
+                             <button onClick={() => { setIsResharing(false); setSharingPost(null); }}><X /></button>
                          </div>
                          <textarea 
-                            className="w-full bg-dark-900 p-3 rounded-lg text-white outline-none h-24"
-                            placeholder="Add your thoughts..."
-                            value={reshareText === ' ' ? '' : reshareText}
+                            className="w-full bg-dark-900 p-3 rounded-lg text-white outline-none h-24 border border-white/5 focus:border-neon-blue"
+                            placeholder="Add your thoughts (optional)..."
+                            value={reshareText}
                             onChange={e => setReshareText(e.target.value)}
+                            autoFocus
                          />
-                         <div className="border border-white/10 rounded p-2 flex gap-2 opacity-70">
-                             {sharingPost.mediaUrl && <img src={sharingPost.mediaUrl} className="w-10 h-10 object-cover rounded" />}
-                             <div className="text-xs overflow-hidden">
-                                 <div className="font-bold">@{sharingPost.author.username}</div>
-                                 <div className="truncate">{sharingPost.content}</div>
+                         <div className="border border-white/10 rounded p-3 flex gap-3 opacity-80 bg-dark-900">
+                             {sharingPost.mediaUrl && <img src={sharingPost.mediaUrl} className="w-12 h-12 object-cover rounded" />}
+                             <div className="text-xs overflow-hidden flex-1">
+                                 <div className="font-bold text-neon-blue">@{sharingPost.author.username}</div>
+                                 <div className="truncate text-gray-300">{sharingPost.content}</div>
                              </div>
                          </div>
-                         <button onClick={handleReshare} className="w-full bg-neon-purple py-3 rounded-lg font-bold text-white">Post to Feed</button>
+                         <button onClick={handleReshare} className="w-full bg-neon-purple py-3 rounded-lg font-bold text-white hover:bg-neon-purple/80 transition-colors">Post to Feed</button>
                      </div>
                  </div>
-             )}
+            )}
           </>
       )}
 
       {/* STATUS VIEWER */}
       {viewingStatus && (
-          <div className="fixed inset-0 z-[80] bg-black flex flex-col">
+          <div className="fixed inset-0 z-[80] bg-black flex flex-col animate-fade-in">
               <div className="h-1 w-full flex gap-1 px-1 pt-1">
                   {/* Progress Bar Mock */}
                   <div className="h-full bg-white flex-1 rounded-full animate-pulse"></div>
@@ -289,17 +291,16 @@ export const SocialTab: React.FC<{ active: boolean, onViewProfile: (user: User) 
       )}
 
       {/* STATUS CREATOR */}
-      {creatingStatus && <StatusCreator onClose={() => setCreatingStatus(false)} onPost={handlePostStatus} />}
+      {creatingStatus && <StatusCreator currentUser={currentUser} onClose={() => setCreatingStatus(false)} onPost={handlePostStatus} />}
     </div>
   );
 };
 
 // Mini Component for Creating Status (Simplified AddTab Logic)
-const StatusCreator: React.FC<{ onClose: () => void, onPost: (s: Status) => void }> = ({ onClose, onPost }) => {
+const StatusCreator: React.FC<{ currentUser: User, onClose: () => void, onPost: (s: Status) => void }> = ({ currentUser, onClose, onPost }) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const [media, setMedia] = useState<{url: string, type: 'image' | 'video'} | null>(null);
     const [isRecording, setIsRecording] = useState(false);
-    const [timeLeft, setTimeLeft] = useState(120); // 2 mins max
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const chunksRef = useRef<Blob[]>([]);
 
@@ -320,7 +321,6 @@ const StatusCreator: React.FC<{ onClose: () => void, onPost: (s: Status) => void
                 setMedia({ url: URL.createObjectURL(blob), type: 'video' });
             };
             mr.start();
-            // Timer logic would go here
         }
     };
 
@@ -341,7 +341,7 @@ const StatusCreator: React.FC<{ onClose: () => void, onPost: (s: Status) => void
         if (!media) return;
         onPost({
             id: Date.now().toString(),
-            author: MOCK_USER,
+            author: currentUser,
             mediaUrl: media.url,
             mediaType: media.type,
             timestamp: Date.now(),
@@ -350,7 +350,7 @@ const StatusCreator: React.FC<{ onClose: () => void, onPost: (s: Status) => void
     };
 
     return (
-        <div className="fixed inset-0 z-[90] bg-black flex flex-col">
+        <div className="fixed inset-0 z-[90] bg-black flex flex-col animate-slide-up">
             {!media ? (
                 <>
                     <video ref={videoRef} autoPlay muted className="flex-1 object-cover" />
@@ -363,12 +363,12 @@ const StatusCreator: React.FC<{ onClose: () => void, onPost: (s: Status) => void
                             onMouseUp={stopRecording}
                             onTouchStart={startRecording}
                             onTouchEnd={stopRecording}
-                            className={`w-20 h-20 border-4 border-white rounded-full ${isRecording ? 'bg-red-500 scale-110' : 'bg-white/20'}`}
+                            className={`w-20 h-20 border-4 border-white rounded-full transition-all duration-200 ${isRecording ? 'bg-red-500 scale-110 border-red-400' : 'bg-white/20'}`}
                         />
                         <div className="w-14"></div>
                     </div>
-                    <div className="absolute bottom-32 w-full text-center text-sm font-bold text-white shadow-black drop-shadow-md">
-                        Hold for Video (Max 2m) • Tap for Photo
+                    <div className="absolute bottom-32 w-full text-center text-sm font-bold text-white shadow-black drop-shadow-md animate-pulse">
+                        Hold for Video • Tap for Photo
                     </div>
                 </>
             ) : (
@@ -379,7 +379,9 @@ const StatusCreator: React.FC<{ onClose: () => void, onPost: (s: Status) => void
                          <button className="bg-black/40 p-2 rounded-full"><Edit3 className="text-white" /></button>
                      </div>
                      <div className="p-6 bg-dark-900">
-                         <button onClick={handlePost} className="w-full bg-neon-blue py-3 rounded-xl font-bold flex justify-center gap-2">Post Status <Send /></button>
+                         <button onClick={handlePost} className="w-full bg-neon-blue py-3 rounded-xl font-bold flex justify-center gap-2 text-black hover:scale-105 transition-transform">
+                             Post Status <Send />
+                         </button>
                      </div>
                 </>
             )}
